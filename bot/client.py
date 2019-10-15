@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 
 import django
 from django.shortcuts import get_object_or_404
@@ -22,5 +23,30 @@ def GetToken():
     return botModels.Setting.objects.get(active=True).telegramBotToken.token
 
 
+def IsUserExists(user):
+
+    try:
+        currentUser = botModels.TelegramUser.get(telegram_id=int(user))
+        return True
+    except Exception as e:
+        return False
+
+
+def CreateUser(user):
+
+    newUser = botModels.TelegramUser()
+    newUser.telegram_id = int(user.id)
+    newUser.fullName = str(user.full_name)
+    newUser.username = str(user.username)
+
+    newUser.save()
+
+    return newUser
+
+
+def getMessage(number):
+    return bot_models.Message.objects.get(number=int(number)).text
+
+
 if __name__ == "__main__":
-    GetToken()
+    pass

@@ -12,7 +12,6 @@ from aiogram.contrib.fsm_storage.redis import RedisStorage2
 import aioredis
 
 from aiogram.dispatcher import FSMContext
-from aiogram.dispatcher.filters.state import State, StatesGroup
 
 from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions, InputFile
 
@@ -30,7 +29,7 @@ logging.basicConfig(format=u'%(filename)+13s [ LINE:%(lineno)-4s] %(levelname)-8
 
 
 bot = Bot(token=client.GetToken())
-storage = RedisStorage2(db=6)
+storage = RedisStorage2(db=9)
 dp = Dispatcher(bot, storage=storage)
 
 dp.middleware.setup(LoggingMiddleware())
@@ -56,3 +55,81 @@ async def process_start_command(message: types.Message, state: FSMContext):
 
     text = "Выбери язык"
     await bot.send_message(user, text, reply_markup=keyboards.LanguageKeyboard())
+
+
+@dp.message_handler(state=States.User.JustStarted)
+async def process_start_command(message: types.Message, state: FSMContext):
+    user = message.from_user.id
+    recievedText = message.text
+
+    if "ру" in recievedText.lower():
+        client.SetUserLanguage(user, "ru")
+    elif "bek" in recievedText.lower():
+        client.SetUserLanguage(user, "uz")
+
+    text = "Отлично!"
+    await bot.send_message(user, text)
+
+    await States.User.MainMenu.set()
+    text = "Отлично! Теперь выбери действие"
+    await bot.send_message(user, text, reply_markup=keyboards.MainMenuKeyboard(user))
+
+
+@dp.message_handler(state=States.User.CinemaSet)
+async def process_start_command(message: types.Message, state: FSMContext):
+    user = message.from_user.id
+    recievedText = message.text
+
+    if "ру" in recievedText.lower():
+        client.SetUserLanguage(user, "ru")
+    elif "bek" in recievedText.lower():
+        client.SetUserLanguage(user, "uz")
+
+    text = "Отлично!"
+    await bot.send_message(user, text)
+
+    await States.User.MainMenu.set()
+    text = "Отлично! Теперь выбери действие"
+    await bot.send_message(user, text, reply_markup=keyboards.MainMenuKeyboard(user))
+
+
+@dp.message_handler(state=States.User.MainMenu)
+async def process_menu_btns(message: types.Message, state: FSMContext):
+    user = message.from_user.id
+    recievedText = message.text
+
+    if "кинотеатры" in recievedText.lower():
+        await States.User.Cinema.set()
+
+        text = ""
+        await bot.send_message(user, text, reply_markup=None)
+        
+    elif "сеансы" in recievedText.lower():
+        await States.User.Session.set()
+        
+        text = ""
+        await bot.send_message(user, text, reply_markup=None)
+        
+    elif "помощь" in recievedText.lower():
+        await States.User.Help.set()
+        
+        text = ""
+        await bot.send_message(user, text, reply_markup=None)
+        
+    elif "кэшбэк" in recievedText.lower():
+        await States.User.Cashback.set()
+
+        text = ""
+        await bot.send_message(user, text, reply_markup=None)
+
+
+async def shutdown(dispatcher: Dispatcher):
+    await dispatcher.storage.close()
+    await dispatcher.storage.wait_closed()
+
+
+if __name__ == '__main__':
+    if not os.path.exists(os.getcwd()+"/Users/"):
+        os.mkdir(os.getcwd()+"/Users/", 0o777)
+        
+    executor.start_polling(dp, on_shutdown=shutdown)

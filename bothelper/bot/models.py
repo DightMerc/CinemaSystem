@@ -46,7 +46,7 @@ class TelegramUser(models.Model):
     username = models.CharField("Username", max_length=255, default="", null=True)
     phone = models.PositiveIntegerField("Номер телефона", null=True, blank=True)
 
-    language = models.CharField("Язык", max_length=5, default="RU")
+    language = models.CharField("Язык", max_length=5, default="RU", null=True, blank=True)
 
     registrationDate = models.DateTimeField("Дата регистрации", default=timezone.now)
 

@@ -26,7 +26,7 @@ def GetToken():
 def IsUserExists(user):
 
     try:
-        currentUser = botModels.TelegramUser.get(telegram_id=int(user))
+        botModels.TelegramUser.objects.get(telegramId=int(user))
         return True
     except Exception as e:
         return False
@@ -35,7 +35,7 @@ def IsUserExists(user):
 def CreateUser(user):
 
     newUser = botModels.TelegramUser()
-    newUser.telegram_id = int(user.id)
+    newUser.telegramId = int(user.id)
     newUser.fullName = str(user.full_name)
     newUser.username = str(user.username)
 
@@ -45,7 +45,17 @@ def CreateUser(user):
 
 
 def getMessage(number):
-    return bot_models.Message.objects.get(number=int(number)).text
+    return botModels.Message.objects.get(number=int(number)).text
+
+
+def SetUserLanguage(user, language):
+    
+    current_user = botModels.TelegramUser.objects.get(telegramId=int(user))
+    current_user.language = language
+
+    current_user.save()
+
+    return language
 
 
 if __name__ == "__main__":

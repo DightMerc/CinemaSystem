@@ -12,7 +12,7 @@ class Movie(models.Model):
 
     description = models.TextField("Описание")
     
-    producer = models.CharField("Название", max_length=255, default="", null=True, blank=True)
+    producer = models.CharField("Режиссер", max_length=255, default="", null=True, blank=True)
 
     yearOfIssue = models.DateField("Дата выпуска в показ")
     country = models.CharField("Страна", max_length=255, default="", null=True, blank=True)
@@ -51,6 +51,7 @@ class SessionDay(models.Model):
 
 class Cinema(models.Model):
     title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
+    active = models.BooleanField("Активно", default=False)
 
     def __str__(self):
         return f"{self.id}: {self.title}"

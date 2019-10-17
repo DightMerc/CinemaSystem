@@ -75,24 +75,6 @@ async def process_start_command(message: types.Message, state: FSMContext):
     await bot.send_message(user, text, reply_markup=keyboards.MainMenuKeyboard(user))
 
 
-@dp.message_handler(state=States.User.CinemaSet)
-async def process_start_command(message: types.Message, state: FSMContext):
-    user = message.from_user.id
-    recievedText = message.text
-
-    if "ру" in recievedText.lower():
-        client.SetUserLanguage(user, "ru")
-    elif "bek" in recievedText.lower():
-        client.SetUserLanguage(user, "uz")
-
-    text = "Отлично!"
-    await bot.send_message(user, text)
-
-    await States.User.MainMenu.set()
-    text = "Отлично! Теперь выбери действие"
-    await bot.send_message(user, text, reply_markup=keyboards.MainMenuKeyboard(user))
-
-
 @dp.message_handler(state=States.User.MainMenu)
 async def process_menu_btns(message: types.Message, state: FSMContext):
     user = message.from_user.id
@@ -101,26 +83,48 @@ async def process_menu_btns(message: types.Message, state: FSMContext):
     if "кинотеатры" in recievedText.lower():
         await States.User.Cinema.set()
 
-        text = ""
-        await bot.send_message(user, text, reply_markup=None)
+        text = "Выбери кинотеатр"
+        await bot.send_message(user, text, reply_markup=keyboards.AllCinemas())
         
-    elif "сеансы" in recievedText.lower():
-        await States.User.Session.set()
+    elif "фильмы" in recievedText.lower():
+        await States.User.Movie.set()
         
-        text = ""
-        await bot.send_message(user, text, reply_markup=None)
+        text = "Выбери фильм"
+        await bot.send_message(user, text, reply_markup=keyboards.AllMovies())
         
     elif "помощь" in recievedText.lower():
         await States.User.Help.set()
         
-        text = ""
+        text = "F.A.Q"
         await bot.send_message(user, text, reply_markup=None)
         
     elif "кэшбэк" in recievedText.lower():
         await States.User.Cashback.set()
 
-        text = ""
+        text = "Кэшбэк"
         await bot.send_message(user, text, reply_markup=None)
+
+    
+@dp.callback_query_handler(state=States.User.Cinema)
+async def process_menu_btns(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+    num = callback_query.data
+
+    
+
+
+@dp.callback_query_handler(state=States.User.Movie)
+async def process_menu_btns(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+    num = callback_query.data
+
+    movie = client.GetMovie(num)
+
+    text = utils.GenerateDescription(movie)
+
+    # await bot.send_photo(user, InputFile(), caption=text, reply_markup=keyboards.FindSession())
 
 
 async def shutdown(dispatcher: Dispatcher):

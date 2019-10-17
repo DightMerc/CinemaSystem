@@ -5,6 +5,7 @@ class User(StatesGroup):
     JustStarted = State()
     MainMenu = State()
 
+    Movie = State()
     Cinema = State()
     Session = State()
     Cashback = State()

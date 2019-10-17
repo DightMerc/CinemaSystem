@@ -16,7 +16,7 @@ print(proj_path)
 django.setup()
 
 from bot import models as botModels
-# from system import models as bot_models
+from system import models as systemModels
 
 
 def GetToken():
@@ -56,6 +56,21 @@ def SetUserLanguage(user, language):
     current_user.save()
 
     return language
+
+
+def GetAllCinemas():
+
+    return systemModels.Cinema.objects.filter(active=True)
+
+
+def GetAllMovies():
+
+    return systemModels.Movie.objects.filter(active=True)
+
+
+def GetMovie(id):
+
+    return systemModels.Movie.objects.get(id=id)
 
 
 if __name__ == "__main__":

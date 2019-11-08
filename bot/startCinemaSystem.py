@@ -22,15 +22,22 @@ import os
 
 import states as States
 import client
+import utils
+
+import telegramcalendar
+import telegramoptions
+
+from datetime import date, timedelta
+import datetime
 
 
 logging.basicConfig(format=u'%(filename)+13s [ LINE:%(lineno)-4s] %(levelname)-8s [%(asctime)s] %(message)s',
                      level=logging.DEBUG)
 
 
-bot = Bot(token=client.GetToken())
-storage = RedisStorage2(db=9)
-dp = Dispatcher(bot, storage=storage)
+bot = Bot(token=client.GetToken(), parse_mode=ParseMode.HTML)
+# storage = RedisStorage2(db=9)
+dp = Dispatcher(bot, storage=MemoryStorage())
 
 dp.middleware.setup(LoggingMiddleware())
 
@@ -121,10 +128,76 @@ async def process_menu_btns(callback_query: types.CallbackQuery, state: FSMConte
     num = callback_query.data
 
     movie = client.GetMovie(num)
+    utils.GetAllSessionsDates(movie)
 
     text = utils.GenerateDescription(movie)
 
-    # await bot.send_photo(user, InputFile(), caption=text, reply_markup=keyboards.FindSession())
+    async with state.proxy() as data:
+        data['movie'] = num 
+
+    await States.User.DateSet.set()
+
+
+    await bot.send_photo(user, InputFile(os.path.join(client.proj_path, "media", "covers", str(movie.photo.url).replace("media/covers/",""))), caption=text, reply_markup=keyboards.AskDate(movie))
+
+
+@dp.callback_query_handler(state=States.User.DateSet)
+async def process_date(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+    num = int(str(callback_query.data).replace("dateChoose ", ""))
+
+    movie = client.GetMovie(num)
+
+    
+
+    await States.User.ChooseDate.set()
+
+    text = "Выберите наиболее подходящую дату для похода в кино"
+
+    await bot.send_message(user, text, reply_markup=keyboards.FindDate(movie))
+
+
+@dp.callback_query_handler(state=States.User.ChooseDate)
+async def process_date_choose(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+
+    async with state.proxy() as data:
+        num = data['movie']
+
+    movie = client.GetMovie(num)
+    query = callback_query
+
+    ret_data = (False,None)
+    (action,year,month,day) = telegramcalendar.separate_callback_data(query.data)
+    curr = datetime.datetime(int(year), int(month), 1)
+
+    print(f"\n\n{query.message.message_id}\n\n")
+    if action == "IGNORE":
+        await bot.answer_callback_query(callback_query_id=query.id)
+    elif action == "DAY":
+        await bot.edit_message_text(text=query.message.text,
+            chat_id=user,
+            message_id=query.message.message_id
+            )
+        ret_data = True,datetime.datetime(int(year), int(month), int(day))
+    elif action == "PREV-MONTH":
+        pre = curr - datetime.timedelta(days=1)
+        await bot.edit_message_text(text=query.message.text,
+            chat_id=user,
+            message_id=query.message.message_id,
+            reply_markup=telegramcalendar.create_calendar(int(pre.year), int(pre.month), utils.GetAllSessionsDates(movie)))
+    elif action == "NEXT-MONTH":
+        ne = curr + datetime.timedelta(days=31)
+        await bot.edit_message_text(text=query.message.text,
+            chat_id=user,
+            message_id=query.message.message_id,
+            reply_markup=telegramcalendar.create_calendar(int(ne.year), int(ne.month), utils.GetAllSessionsDates(movie)))
+    else:
+        await bot.answer_callback_query(callback_query_id=query.id,text="Something went wrong!")
+        # UNKNOWN
+    return ret_data
 
 
 async def shutdown(dispatcher: Dispatcher):

@@ -10,6 +10,8 @@ class Movie(models.Model):
     title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
     active = models.BooleanField("Активно", default=False)
 
+    photo = models.ImageField("Фото", upload_to="media/covers")
+
     description = models.TextField("Описание")
     
     producer = models.CharField("Режиссер", max_length=255, default="", null=True, blank=True)
@@ -30,7 +32,7 @@ class Session(models.Model):
     price = models.PositiveIntegerField("Цена")
     time = models.TimeField("Время начала сеанса")
 
-    duration = models.TimeField("Длительность")
+    duration = models.CharField("Длительность", max_length=255, default="", null=False, blank=False)
 
     startDate = models.DateField("Дата начала показа сеанса")
     endDate = models.DateField("Дата окончания показа сеанса")

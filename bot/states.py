@@ -10,3 +10,6 @@ class User(StatesGroup):
     Session = State()
     Cashback = State()
     Help = State()
+
+    DateSet = State()
+    ChooseDate = State()

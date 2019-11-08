@@ -3,6 +3,18 @@ from aiogram.types import ReplyKeyboardRemove, \
     InlineKeyboardMarkup, InlineKeyboardButton
 import client
 
+import telegramcalendar
+import telegramoptions
+import utils
+
+
+def AskDate(movie):
+    return InlineKeyboardMarkup().add(InlineKeyboardButton('Выбрать дату', callback_data=f'dateChoose {movie.id}'))
+
+
+def FindDate(movie):
+    return telegramcalendar.create_calendar(days=utils.GetAllSessionsDates(movie))
+
 
 def LanguageKeyboard():
 

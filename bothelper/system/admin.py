@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from .models import Staff, StaffPosition
-from .models import Movie, Session, SessionDay, Cinema, Ticket
+from .models import Movie, Session, SessionMovieDay, Cinema, Ticket
 
 
 # Register your models here.
@@ -35,8 +35,8 @@ class SessionAdmin(admin.ModelAdmin):
     search_fields = ('id', 'title', 'movie', 'country')
 
 
-@admin.register(SessionDay)
-class SessionDayAdmin(admin.ModelAdmin):
+@admin.register(SessionMovieDay)
+class SessionMovieDayAdmin(admin.ModelAdmin):
     list_display = ('id', 'title')
     ordering = ('id',)
     search_fields = ('id', 'title')

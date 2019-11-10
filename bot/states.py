@@ -13,3 +13,5 @@ class User(StatesGroup):
 
     DateSet = State()
     ChooseDate = State()
+    ChooseSession = State()
+    TicketNumber = State()

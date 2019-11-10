@@ -9,6 +9,8 @@ def GetAllSessionsDates(movie):
     sessions = client.systemModels.Session.objects.filter(movie=movie)
     days = []
     for session in sessions:
+        currentDayMovieSession = client.systemModels.SessionMovieDay.objects.filter(session=session)
+
         start = session.startDate
         end = session.endDate
 
@@ -16,15 +18,23 @@ def GetAllSessionsDates(movie):
 
         today = date.today()
 
-        # print(f"\n\n{start}\n\n")
-        # print(f"\n\n{end}\n\n")
-
         for i in range(delta.days + 1):
+            
             day = start + timedelta(days=i)
             if not day < today:
-                days.append(day)
-
-        # print(f"\n\n{days}\n\n")
-        
+                try:
+                    if currentDayMovieSession.get(date=day).tickets > 0:
+                        days.append(day)
+                except Exception as e:
+                    pass
 
     return days
+
+
+def GeneratePrecheckout(session, date, count):
+    movies = ""
+    for movie in session.movie.all():
+        movies += f" + {movie.title}"
+
+    price = int(session.price * count)
+    return f"<b>{movies}</b>\n\n<b>Кинотеатр:</b> {session.cinema.title}\n\n<b>Общая цена:</b> {price} сум"

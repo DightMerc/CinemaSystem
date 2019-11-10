@@ -173,15 +173,19 @@ async def process_date_choose(callback_query: types.CallbackQuery, state: FSMCon
     (action,year,month,day) = telegramcalendar.separate_callback_data(query.data)
     curr = datetime.datetime(int(year), int(month), 1)
 
-    print(f"\n\n{query.message.message_id}\n\n")
+    print(f"\n\n{action}\n\n")
     if action == "IGNORE":
         await bot.answer_callback_query(callback_query_id=query.id)
     elif action == "DAY":
-        await bot.edit_message_text(text=query.message.text,
-            chat_id=user,
-            message_id=query.message.message_id
-            )
-        ret_data = True,datetime.datetime(int(year), int(month), int(day))
+        await bot.delete_message(user, query.message.message_id)
+
+        # sessionDay = client.systemModels.SessionMovieDay.objects.filter(date=datetime.date(int(year), int(month), int(day)))
+        async with state.proxy() as data:
+            data['date'] = datetime.date(int(year), int(month), int(day))
+        await States.User.ChooseSession.set()
+        text = "Выбери сеанс, который тебе больше по душе"
+        await bot.send_message(user, text, reply_markup=keyboards.SessionKeyboard(datetime.date(int(year), int(month), int(day)), num))
+
     elif action == "PREV-MONTH":
         pre = curr - datetime.timedelta(days=1)
         await bot.edit_message_text(text=query.message.text,
@@ -196,8 +200,56 @@ async def process_date_choose(callback_query: types.CallbackQuery, state: FSMCon
             reply_markup=telegramcalendar.create_calendar(int(ne.year), int(ne.month), utils.GetAllSessionsDates(movie)))
     else:
         await bot.answer_callback_query(callback_query_id=query.id,text="Something went wrong!")
-        # UNKNOWN
     return ret_data
+
+
+@dp.callback_query_handler(state=States.User.ChooseSession)
+async def process_session_choose(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+
+    num = int(callback_query.data)
+
+    await bot.delete_message(user, callback_query.message.message_id)
+
+
+    async with state.proxy() as data:
+        data['session'] = num
+
+    await States.User.TicketNumber.set()
+
+    text = "Выбери количество билетов"
+    await bot.send_message(user, text, reply_markup=keyboards.TicketKeyboard())
+
+
+@dp.callback_query_handler(state=States.User.TicketNumber)
+async def process_ticketNumber_choose(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+
+    num = int(callback_query.data)
+
+    await bot.delete_message(user, callback_query.message.message_id)
+
+    text = ""
+
+    async with state.proxy() as data:
+        data['tickets'] = num
+        session = data['session']
+        date = data['date']
+
+        session = client.systemModels.Session.objects.get(id=session)
+
+        text = utils.GeneratePrecheckout(session, date, num)
+
+        data['date'] = int(session.price * num)
+    
+
+    await States.User.TicketNumber.set()
+    
+    await bot.send_message(user, text, reply_markup=keyboards.BuyKeyboard())
+
+
 
 
 async def shutdown(dispatcher: Dispatcher):

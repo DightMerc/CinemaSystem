@@ -2,6 +2,9 @@ from django.db import models
 from django.utils import timezone
 from bot.models import Token, TelegramUser, PaySystem
 
+from datetime import date, timedelta
+
+
 
 # Create your models here.
 
@@ -23,6 +26,21 @@ class Movie(models.Model):
         return f"{self.id}: {self.title}"
 
 
+class Cinema(models.Model):
+    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
+    active = models.BooleanField("Активно", default=False)
+
+    def __str__(self):
+        return f"{self.id}: {self.title}"
+
+
+class StaffPosition(models.Model):
+    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
+
+    def __str__(self):
+        return f"{self.id}: {self.title}"
+
+
 class Session(models.Model):
     title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
     active = models.BooleanField("Активно", default=False)
@@ -34,29 +52,34 @@ class Session(models.Model):
 
     duration = models.CharField("Длительность", max_length=255, default="", null=False, blank=False)
 
+    cinema = models.ForeignKey(Cinema, on_delete=models.CASCADE)
+
     startDate = models.DateField("Дата начала показа сеанса")
     endDate = models.DateField("Дата окончания показа сеанса")
 
     def __str__(self):
         return f"{self.id}: {self.title}"
 
+    def save(self, *args, **kwargs):
 
-class SessionDay(models.Model):
-    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
-    date = models.DateField("День", null=False, blank=False)
+        super().save(*args, **kwargs)  # Call the "real" save() method.
 
-    sessions = models.ManyToManyField(Session)
+        start = self.startDate
+        end = self.endDate
 
-    def __str__(self):
-        return f"{self.title}: {self.date}"
+        delta = end - start       # as timedelta
 
+        today = date.today()
 
-class Cinema(models.Model):
-    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
-    active = models.BooleanField("Активно", default=False)
-
-    def __str__(self):
-        return f"{self.id}: {self.title}"
+        for i in range(delta.days + 1):
+            
+            day = start + timedelta(days=i)
+            sessionDay = SessionMovieDay()
+            sessionDay.title = f"{self.title}: {day}"
+            sessionDay.date = day
+            sessionDay.tickets = 35
+            sessionDay.session = self
+            sessionDay.save()
 
 
 class Ticket(models.Model):
@@ -75,13 +98,6 @@ class Ticket(models.Model):
         return f"{self.id}: {self.session}"
 
 
-class StaffPosition(models.Model):
-    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
-
-    def __str__(self):
-        return f"{self.id}: {self.title}"
-
-
 class Staff(models.Model):
     title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
 
@@ -96,3 +112,15 @@ class Staff(models.Model):
 
     def __str__(self):
         return f"{self.id}: {self.title}"
+
+
+class SessionMovieDay(models.Model):
+    title = models.CharField("Название", max_length=255, default="", null=False, blank=False)
+    date = models.DateField("День", null=False, blank=False)
+
+    tickets = models.PositiveIntegerField("Количество билетов", default=35, null=False, blank=False)
+
+    session = models.ForeignKey(Session, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"{self.title}: {self.date}"

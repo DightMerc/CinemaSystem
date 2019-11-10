@@ -16,6 +16,48 @@ def FindDate(movie):
     return telegramcalendar.create_calendar(days=utils.GetAllSessionsDates(movie))
 
 
+def SessionKeyboard(date, movie):
+    currentMovie = client.systemModels.Movie.objects.get(id=movie)
+    sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
+    sessions = []
+    for sessionDay in sessionDays:
+        session = sessionDay.session
+        if currentMovie in session.movie.all():
+            sessions.append(session)
+
+    button_list = []
+
+    cinemas = client.GetAllCinemas()
+
+    for session in sessions:
+        movies = ""
+        for movie in session.movie.all():
+            movies += f" + {movie.title}"
+        button_list.append(InlineKeyboardButton(f'{movies}: {session.cinema.title}', callback_data=f'{session.id}'))
+    footer = []
+
+    footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+    return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+
+
+def BuyKeyboard():
+    return InlineKeyboardMarkup().add(InlineKeyboardButton('Оплатить', callback_data=f'pay')
+    ).add(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+
+
+def TicketKeyboard():
+    button_list = []
+
+    cinemas = client.GetAllCinemas()
+
+    for a in range(1, 11):
+        button_list.append(InlineKeyboardButton(f'{a}', callback_data=f'{a}'))
+    footer = []
+
+    footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+    return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+
+
 def LanguageKeyboard():
 
     return ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).row(

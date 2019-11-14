@@ -21,6 +21,10 @@ from system import models as systemModels
 
 def GetToken():
     return botModels.Setting.objects.get(active=True).telegramBotToken.token
+    
+
+def GetPaymentToken(system):
+    return botModels.PaySystem.objects.get(id=system).paySystemToken.token
 
 
 def IsUserExists(user):

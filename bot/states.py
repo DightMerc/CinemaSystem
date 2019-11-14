@@ -15,3 +15,10 @@ class User(StatesGroup):
     ChooseDate = State()
     ChooseSession = State()
     TicketNumber = State()
+    ChoosePaymentSystem = State()
+    Invoice = State()
+    PreCheckout = State()
+    SuccessfulPayment = State()
+
+
+    

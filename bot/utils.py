@@ -1,5 +1,8 @@
 import client
 from datetime import date, timedelta
+import hashlib
+import pyqrcode
+import os
 
 def GenerateDescription(movie):
     return f"<b>{movie.title}</b>\n\n<code>{movie.description}</code>\n\n<b>Режиссер:</b> {movie.producer}\n<b>Страна:</b> {movie.country}"
@@ -29,6 +32,18 @@ def GetAllSessionsDates(movie):
                     pass
 
     return days
+
+
+def qrGenerate(user, date, session_num, now):
+    textToQR = f"{user} {date} {session_num} {now}"
+
+    result = hashlib.md5(str.encode(textToQR)).hexdigest()
+    img = pyqrcode.create(str(result))
+    img.png(os.path.join(os.getcwd(), "codes", f"{result}.png"), scale=8)
+
+    return os.path.join(os.getcwd(), "codes", f"{result}.png")
+
+
 
 
 def GeneratePrecheckout(session, date, count):

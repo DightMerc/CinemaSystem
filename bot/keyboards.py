@@ -39,10 +39,51 @@ def SessionKeyboard(date, movie):
     footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
     return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
 
+# def SessionPaginatoinKeyboard(length, current, user):
+#     keyboard = InlineKeyboardMarkup()
+#         if current!=1:
+#             if current==length:
+#                 keyboard.row(
+#                         InlineKeyboardButton(text="<<", callback_data="pagination prev {}".format(current-1)),
+#                         InlineKeyboardButton(text="{}/{}".format(current, length), callback_data="pagination None"),
+#                         InlineKeyboardButton(text=">>", callback_data="pagination next {}".format(current+1)))
+#             else:
+#                 keyboard.row(
+#                         InlineKeyboardButton(text="<<", callback_data="pagination prev {}".format(current-1)),
+#                         InlineKeyboardButton(text="{}/{}".format(current, length), callback_data="pagination None"),
+#                         InlineKeyboardButton(text=">>", callback_data="pagination next {}".format(current+1)))
+#         else:
+#             keyboard.row(
+#                     InlineKeyboardButton(text="<<", callback_data="pagination prev {}".format(current-1)),
+#                     InlineKeyboardButton(text="{}/{}".format(current, length), callback_data="pagination None"),
+#                     InlineKeyboardButton(text=">>", callback_data="pagination next {}".format(current+1)))
+
+#         # if client.getUserLanguage(user)=="RU":
+#             keyboard.row(InlineKeyboardButton(text="Изменить", callback_data="pagination change {}".format(current)),
+#                     InlineKeyboardButton(text="Удалить", callback_data="pagination delete {}".format(current)))
+#             keyboard.add(InlineKeyboardButton(text="Отмена", callback_data="pagination cancel"))
+#         # else:
+#         #         keyboard.row(InlineKeyboardButton(text="Ўзгартириш", callback_data="pagination change {}".format(current)),
+#         #                 InlineKeyboardButton(text="Удалить", callback_data="pagination delete {}".format(current)))
+#         #         keyboard.add(InlineKeyboardButton(text="Бекор килиш", callback_data="pagination cancel"))
+
+#         return keyboard
+
 
 def BuyKeyboard():
     return InlineKeyboardMarkup().add(InlineKeyboardButton('Оплатить', callback_data=f'pay')
     ).add(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+
+
+def PaySystemkeyboard(systems):
+    button_list = []
+
+    for system in systems:
+        button_list.append(InlineKeyboardButton(f'{system.title}', callback_data=f'{system.id}'))
+    footer = []
+
+    footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+    return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
 
 
 def TicketKeyboard():

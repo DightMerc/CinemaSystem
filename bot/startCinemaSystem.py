@@ -6,6 +6,8 @@ from aiogram import Bot, types
 from aiogram.utils import executor
 from aiogram.dispatcher import Dispatcher
 
+from aiogram.types.message import ContentTypes
+
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.contrib.fsm_storage.redis import RedisStorage2
 
@@ -36,10 +38,15 @@ logging.basicConfig(format=u'%(filename)+13s [ LINE:%(lineno)-4s] %(levelname)-8
 
 
 bot = Bot(token=client.GetToken(), parse_mode=ParseMode.HTML)
+
+
 # storage = RedisStorage2(db=9)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
 dp.middleware.setup(LoggingMiddleware())
+
+
+                   
 
 @dp.message_handler(commands=['start'], state="*")
 async def process_start_command(message: types.Message, state: FSMContext):
@@ -242,14 +249,112 @@ async def process_ticketNumber_choose(callback_query: types.CallbackQuery, state
 
         text = utils.GeneratePrecheckout(session, date, num)
 
-        data['date'] = int(session.price * num)
-    
+        data['price'] = int(session.price * num)
 
-    await States.User.TicketNumber.set()
+    await States.User.ChoosePaymentSystem.set()
     
     await bot.send_message(user, text, reply_markup=keyboards.BuyKeyboard())
 
 
+@dp.callback_query_handler(state=States.User.ChoosePaymentSystem)
+async def process_paysystem_choose(callback_query: types.CallbackQuery, state: FSMContext):
+
+    user = callback_query.from_user.id
+
+    await bot.delete_message(user, callback_query.message.message_id)
+
+    text = "Выбери платежную систему"
+
+    await States.User.Invoice.set()
+    
+    await bot.send_message(user, text, reply_markup=keyboards.PaySystemkeyboard(client.botModels.PaySystem.objects.all()))
+
+
+@dp.callback_query_handler(state=States.User.Invoice)
+async def process_paysystem_choose(callback_query: types.CallbackQuery, state: FSMContext):
+
+    num = int(callback_query.data)
+    token = client.GetPaymentToken(num)
+
+    user = callback_query.from_user.id
+
+    await bot.delete_message(user, callback_query.message.message_id)
+
+    async with state.proxy() as data:
+        price = data['price']
+
+        num = data['tickets']
+        session_num = data['session']
+        date = data['date']
+
+        session = client.systemModels.Session.objects.get(id=session_num)
+
+        text = utils.GeneratePrecheckout(session, date, num)
+
+        price = data['price']
+        movie = data['movie']
+    
+
+
+    prices = [
+        types.LabeledPrice(label=text, amount=price * 100),
+    ]
+    await States.User.PreCheckout.set()
+
+    await bot.send_invoice(user, title='Cinema System',
+                           description='SOME SHIT TEXT',
+                           provider_token=token,
+                           currency='uzs',
+                           photo_url='https://telegra.ph/file/e90f7d3f8bc360f7fb731.png',
+                           photo_height=512,  # !=0/None or picture won't be shown
+                           photo_width=512,
+                           photo_size=512,
+                           is_flexible=False,  # True If you need to set up Shipping Fee
+                           prices=prices,
+                        #    need_shipping_address=False,
+                        #     need_email=False,
+                        #     need_name=False,
+                        #     need_phone_number=False,
+                           start_parameter='cinema-system-payment',
+                           payload='HAPPY FRIDAYS COUPON')
+
+
+
+
+@dp.pre_checkout_query_handler(state=States.User.PreCheckout)
+async def checkout(pre_checkout_query: types.PreCheckoutQuery):
+    await States.User.SuccessfulPayment.set()
+    
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True,
+                                        error_message="Aliens tried to steal your card's CVV,"
+                                                      " but we successfully protected your credentials,"
+                                                      " try to pay again in a few minutes, we need a small rest.")
+
+@dp.message_handler(content_types=ContentTypes.SUCCESSFUL_PAYMENT, state=States.User.SuccessfulPayment)
+async def got_payment(message: types.Message):
+
+    async with state.proxy() as data:
+        price = data['price']
+
+        num = data['tickets']
+        session_num = data['session']
+        date = data['date']
+
+        session = client.systemModels.Session.objects.get(id=session_num)
+
+        text = utils.GeneratePrecheckout(session, date, num)
+
+        price = data['price']
+        movie = data['movie']
+
+    await bot.send_message(message.chat.id,
+                           'Hoooooray! Thanks for payment! We will proceed your order for `{} {}`'
+                           ' as fast as possible! Stay in touch.'
+                           '\n\nUse /buy again to get a Time Machine for your friend!'.format(
+                               message.successful_payment.total_amount / 100, message.successful_payment.currency),
+                           parse_mode='Markdown')     
+
+    await bot.send_photo(user, InputFile(utils.qrGenerate(user, date, session_num, datetime.datetime.now())))
 
 
 async def shutdown(dispatcher: Dispatcher):
@@ -260,5 +365,10 @@ async def shutdown(dispatcher: Dispatcher):
 if __name__ == '__main__':
     if not os.path.exists(os.getcwd()+"/Users/"):
         os.mkdir(os.getcwd()+"/Users/", 0o777)
+
+    if not os.path.exists(os.path.join(os.getcwd(), "codes")):
+        os.mkdir(os.path.join(os.getcwd(), "codes"), 0o777)
+
+        
         
     executor.start_polling(dp, on_shutdown=shutdown)

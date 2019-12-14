@@ -20,5 +20,7 @@ class User(StatesGroup):
     PreCheckout = State()
     SuccessfulPayment = State()
 
+    CloseSession = State()
+
 
     

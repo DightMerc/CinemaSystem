@@ -87,12 +87,16 @@ class Ticket(models.Model):
 
     user = models.ForeignKey(TelegramUser, on_delete=models.CASCADE)
 
+    used = models.BooleanField("Использован", default=False)
+
     buyDate = models.DateTimeField("Дата приобретения билета", default=timezone.now, null=False, blank=False)
     applyDate = models.DateTimeField("Дата использования билета", null=True, blank=True)
 
     cinema = models.ForeignKey(Cinema, on_delete=models.CASCADE)
 
     price = models.PositiveIntegerField("Цена", default=0, null=False, blank=False)
+    hash = models.CharField("Hash", max_length=400, default="", null=False, blank=False)
+    
 
     def __str__(self):
         return f"{self.id}: {self.session}"

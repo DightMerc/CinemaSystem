@@ -16,28 +16,107 @@ def FindDate(movie):
     return telegramcalendar.create_calendar(days=utils.GetAllSessionsDates(movie))
 
 
-def SessionKeyboard(date, movie):
-    currentMovie = client.systemModels.Movie.objects.get(id=movie)
-    sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
-    sessions = []
-    for sessionDay in sessionDays:
-        session = sessionDay.session
-        if currentMovie in session.movie.all():
-            sessions.append(session)
+def SessionKeyboard(date, movie, cinema):
+    if cinema is None:
+        if movie is None:
+            sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
 
-    button_list = []
+            button_list = []
 
-    cinemas = client.GetAllCinemas()
+            cinemas = client.GetAllCinemas()
 
-    for session in sessions:
-        movies = ""
-        for movie in session.movie.all():
-            movies += f" + {movie.title}"
-        button_list.append(InlineKeyboardButton(f'{movies}: {session.cinema.title}', callback_data=f'{session.id}'))
-    footer = []
+            for session in sessionDays:
+                movies = ""
+                for movie in session.session.movie.all():
+                    if movies == "":
+                        movies += f"{movie.title}"
+                    else:
+                        movies += f" + {movie.title}"
+                button_list.append(InlineKeyboardButton(f'{str(session.session.time)[:5]} {movies}: {session.session.cinema.title}', callback_data=f'{session.session.id}'))
+            footer = []
 
-    footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
-    return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+            footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+            return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+        else:
+            currentMovie = client.systemModels.Movie.objects.get(id=movie)
+            sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
+            sessions = []
+            for sessionDay in sessionDays:
+                session = sessionDay.session
+                if currentMovie in session.movie.all():
+                    sessions.append(session)
+
+            button_list = []
+
+            cinemas = client.GetAllCinemas()
+
+            for session in sessions:
+                movies = ""
+                for movie in session.movie.all():
+                    if movies == "":
+                        movies += f"{movie.title}"
+                    else:
+                        movies += f" + {movie.title}"
+                button_list.append(InlineKeyboardButton(f'{str(session.time)[:5]} {movies}: {session.cinema.title}', callback_data=f'{session.id}'))
+            footer = []
+
+            footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+            return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+    else:
+        
+        if movie is None:
+            sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
+
+            button_list = []
+
+            cinemas = client.GetAllCinemas()
+            currentCinema = cinemas.get(pk=cinema)
+            for session in sessionDays:
+                if session.session.cinema == currentCinema:
+                    movies = ""
+                    for movie in session.session.movie.all():
+                        if movies == "":
+                            movies += f"{movie.title}"
+                        else:
+                            movies += f" + {movie.title}"
+                    button_list.append(InlineKeyboardButton(f'{str(session.session.time)[:5]} {movies}: {session.session.cinema.title}', callback_data=f'{session.session.id}'))
+                else:
+                    pass
+            footer = []
+
+            footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+            return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+        else:
+            cinemas = client.GetAllCinemas()
+            currentCinema = cinemas.get(pk=cinema)
+
+            currentMovie = client.systemModels.Movie.objects.get(id=movie)
+            sessionDays = client.systemModels.SessionMovieDay.objects.filter(date=date)
+            sessions = []
+            for sessionDay in sessionDays:
+                if session.session.cinema == currentCinema:
+                    session = sessionDay.session
+                    if currentMovie in session.movie.all():
+                        sessions.append(session)
+                else:
+                    pass
+
+            button_list = []
+
+            cinemas = client.GetAllCinemas()
+
+            for session in sessions:
+                movies = ""
+                for movie in session.movie.all():
+                    if movies == "":
+                        movies += f"{movie.title}"
+                    else:
+                        movies += f" + {movie.title}"
+                button_list.append(InlineKeyboardButton(f'{str(session.time)[:5]} {movies}: {session.cinema.title}', callback_data=f'{session.id}'))
+            footer = []
+
+            footer.append(InlineKeyboardButton('⏮ Назад', callback_data='back'))
+            return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
 
 # def SessionPaginatoinKeyboard(length, current, user):
 #     keyboard = InlineKeyboardMarkup()
@@ -109,7 +188,8 @@ def LanguageKeyboard():
 
 def MainMenuKeyboard(user):
 
-    return ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True).row(
+    return ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True
+    ).add(KeyboardButton("Ближайшие сеансы")).row(
                 KeyboardButton('Фильмы'),
                 KeyboardButton('Кинотеатры')
         ).add(KeyboardButton("Кэшбэк")
@@ -133,6 +213,16 @@ def AllMovies():
     button_list = []
 
     movies = client.GetAllMovies()
+
+    for movie in movies:
+        button_list.append(InlineKeyboardButton(f'{movie.title}', callback_data=f'{movie.id}'))
+    footer = []
+
+    footer.append(InlineKeyboardButton('⏮ Назад',callback_data='back'))
+    return InlineKeyboardMarkup(inline_keyboard=buildMenu(button_list, n_cols=2, footer_buttons=footer))
+
+def GetMovies(movies):
+    button_list = []
 
     for movie in movies:
         button_list.append(InlineKeyboardButton(f'{movie.title}', callback_data=f'{movie.id}'))

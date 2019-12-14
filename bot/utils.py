@@ -34,14 +34,20 @@ def GetAllSessionsDates(movie):
     return days
 
 
-def qrGenerate(user, date, session_num, now):
-    textToQR = f"{user} {date} {session_num} {now}"
+def GenerateTicket(user, session_num, now, price, hash):
+    client.CreateTicket(user, session_num, now, price, hash)
+    return
 
-    result = hashlib.md5(str.encode(textToQR)).hexdigest()
-    img = pyqrcode.create(str(result))
-    img.png(os.path.join(os.getcwd(), "codes", f"{result}.png"), scale=8)
 
-    return os.path.join(os.getcwd(), "codes", f"{result}.png")
+def GenerateTicketHASH(user, date, session_num, now):
+    textToHASH = f"{user} {date} {session_num} {now}"
+    return str(hashlib.md5(str.encode(textToHASH)).hexdigest())
+
+def qrGenerate(hash):
+    img = pyqrcode.create(hash)
+    img.png(os.path.join(os.getcwd(), "codes", f"{hash}.png"), scale=8)
+
+    return os.path.join(os.getcwd(), "codes", f"{hash}.png")
 
 
 
@@ -49,7 +55,10 @@ def qrGenerate(user, date, session_num, now):
 def GeneratePrecheckout(session, date, count):
     movies = ""
     for movie in session.movie.all():
-        movies += f" + {movie.title}"
+        if movies == "":
+            movies += f"{movie.title}"
+        else:
+            movies += f" + {movie.title}"
 
     price = int(session.price * count)
-    return f"<b>{movies}</b>\n\n<b>Кинотеатр:</b> {session.cinema.title}\n\n<b>Общая цена:</b> {price} сум"
+    return f"<b>{str(session.time)[:5]} {movies}</b>\n\n<b>Кинотеатр:</b> {session.cinema.title}\n\n<b>Общая цена:</b> {price} сум"

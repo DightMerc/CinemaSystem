@@ -51,6 +51,6 @@ class CinemaAdmin(admin.ModelAdmin):
 
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'cinema', 'session', 'price')
+    list_display = ('id', 'used', 'user', 'cinema', 'session', 'price', 'hash')
     ordering = ('id',)
-    search_fields = ('id', 'user', 'cinema', 'session', 'price')
+    search_fields = ('id', 'used', 'user', 'cinema', 'session', 'price', 'hash')

@@ -36,6 +36,27 @@ def IsUserExists(user):
         return False
 
 
+def CreateTicket(user, session_num, now, price, hash):
+    ticket = systemModels.Ticket()
+
+    session = systemModels.Session.objects.get(pk=session_num)
+    user = botModels.TelegramUser.objects.get(telegramId=int(user))
+    cinema = session.cinema
+    
+    ticket.session = session
+    ticket.user = user
+    ticket.buyDate = now
+    ticket.cinema = cinema
+    ticket.price = price
+    ticket.hash = hash
+
+
+    ticket.save()
+
+    return ticket.id
+
+
+
 def CreateUser(user):
 
     newUser = botModels.TelegramUser()

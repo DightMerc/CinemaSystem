@@ -46,7 +46,21 @@ dp = Dispatcher(bot, storage=MemoryStorage())
 dp.middleware.setup(LoggingMiddleware())
 
 
-                   
+@dp.message_handler(commands=['state'], state="*")
+async def get_MyState(message: types.Message):
+    user = message.from_user.id
+
+    state = await dp.current_state(user=message.from_user.id).get_state()
+
+    await bot.send_message(user, state)       
+
+@dp.message_handler(commands=['data'], state="*")
+async def get_MyData(message: types.Message, state: FSMContext):
+    user = message.from_user.id
+
+    async with state.proxy() as data:
+
+        await bot.send_message(user, str(data))        
 
 @dp.message_handler(commands=['start'], state="*")
 async def process_start_command(message: types.Message, state: FSMContext):
@@ -117,6 +131,14 @@ async def process_menu_btns(message: types.Message, state: FSMContext):
 
         text = "Кэшбэк"
         await bot.send_message(user, text, reply_markup=None)
+    elif "ближайшие сеансы":
+        await States.User.ChooseSession.set()
+        
+        async with state.proxy() as data:
+            data['date'] = date.today()
+
+        text = "Выберите ниже ближайший сеанс"
+        await bot.send_message(user, text, reply_markup=keyboards.SessionKeyboard(date.today(), None, None))
 
     
 @dp.callback_query_handler(state=States.User.Cinema)
@@ -125,6 +147,20 @@ async def process_menu_btns(callback_query: types.CallbackQuery, state: FSMConte
     user = callback_query.from_user.id
     num = callback_query.data
 
+    async with state.proxy() as data:
+        data['cinema'] = num
+
+    cinema = client.systemModels.Cinema.objects.get(pk=num)
+    sessions = client.systemModels.Session.objects.all().filter(cinema=cinema)
+
+    movies = []
+    for session in sessions:
+        movies.append(session.movie)
+
+    await States.User.Movie.set()
+        
+    text = "Выбери фильм"
+    await bot.send_message(user, text, reply_markup=keyboards.AllMovies())
     
 
 
@@ -155,8 +191,6 @@ async def process_date(callback_query: types.CallbackQuery, state: FSMContext):
     num = int(str(callback_query.data).replace("dateChoose ", ""))
 
     movie = client.GetMovie(num)
-
-    
 
     await States.User.ChooseDate.set()
 
@@ -189,9 +223,18 @@ async def process_date_choose(callback_query: types.CallbackQuery, state: FSMCon
         # sessionDay = client.systemModels.SessionMovieDay.objects.filter(date=datetime.date(int(year), int(month), int(day)))
         async with state.proxy() as data:
             data['date'] = datetime.date(int(year), int(month), int(day))
-        await States.User.ChooseSession.set()
-        text = "Выбери сеанс, который тебе больше по душе"
-        await bot.send_message(user, text, reply_markup=keyboards.SessionKeyboard(datetime.date(int(year), int(month), int(day)), num))
+            try:
+                cinema = data['cinema']
+                await States.User.ChooseSession.set()
+                text = "Выбери сеанс, который тебе больше по душе"
+                date = datetime.date(int(year), int(month), int(day))
+                await bot.send_message(user, text, reply_markup=keyboards.SessionKeyboard(date, num, cinema))
+            except:
+
+                await States.User.ChooseSession.set()
+                text = "Выбери сеанс, который тебе больше по душе"
+                date = datetime.date(int(year), int(month), int(day))
+                await bot.send_message(user, text, reply_markup=keyboards.SessionKeyboard(date, num, None))
 
     elif action == "PREV-MONTH":
         pre = curr - datetime.timedelta(days=1)
@@ -216,12 +259,15 @@ async def process_session_choose(callback_query: types.CallbackQuery, state: FSM
     user = callback_query.from_user.id
 
     num = int(callback_query.data)
+    session = client.systemModels.Session.objects.get(pk=num)
+
 
     await bot.delete_message(user, callback_query.message.message_id)
 
 
     async with state.proxy() as data:
         data['session'] = num
+        data['movie'] = session.movie.first().id
 
     await States.User.TicketNumber.set()
 
@@ -331,7 +377,8 @@ async def checkout(pre_checkout_query: types.PreCheckoutQuery):
                                                       " try to pay again in a few minutes, we need a small rest.")
 
 @dp.message_handler(content_types=ContentTypes.SUCCESSFUL_PAYMENT, state=States.User.SuccessfulPayment)
-async def got_payment(message: types.Message):
+async def got_payment(message: types.Message, state: FSMContext):
+    user = message.from_user.id
 
     async with state.proxy() as data:
         price = data['price']
@@ -347,14 +394,18 @@ async def got_payment(message: types.Message):
         price = data['price']
         movie = data['movie']
 
-    await bot.send_message(message.chat.id,
-                           'Hoooooray! Thanks for payment! We will proceed your order for `{} {}`'
-                           ' as fast as possible! Stay in touch.'
-                           '\n\nUse /buy again to get a Time Machine for your friend!'.format(
-                               message.successful_payment.total_amount / 100, message.successful_payment.currency),
-                           parse_mode='Markdown')     
+      
 
-    await bot.send_photo(user, InputFile(utils.qrGenerate(user, date, session_num, datetime.datetime.now())))
+    hash = utils.GenerateTicketHASH(user, date, session_num, datetime.datetime.now())
+
+    utils.GenerateTicket(user, session_num, datetime.datetime.now(), price, hash)  
+    text = "А вот и твой билет! Просто покажи этот QR-код на входе в зал кинотеатра и наслаждайся фильмом."
+    await bot.send_message(user, text, reply_markup=None)
+    await bot.send_photo(user, InputFile(utils.qrGenerate(hash)))
+
+    await States.User.MainMenu.set()
+    text = "Теперь выбери действие"
+    await bot.send_message(user, text, reply_markup=keyboards.MainMenuKeyboard(user))
 
 
 async def shutdown(dispatcher: Dispatcher):
